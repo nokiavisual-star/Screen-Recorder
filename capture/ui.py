@@ -512,7 +512,11 @@ class TrayUI:
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-def launch_ui(config: Config, force_console: bool = False) -> None:
+def launch_ui(
+    config: Config,
+    force_console: bool = False,
+    force_tray: bool = False,
+) -> None:
     """Entry point: detect environment and launch the best UI.
 
     Tries tray UI first on Windows. Falls back to console UI if:
@@ -525,6 +529,7 @@ def launch_ui(config: Config, force_console: bool = False) -> None:
     Args:
         config: CapTure Config instance.
         force_console: If True, skip tray UI and use console directly.
+        force_tray: If True, use tray UI (fails if deps missing).
     """
     controller = RecordingController(config)
 
@@ -545,6 +550,9 @@ def launch_ui(config: Config, force_console: bool = False) -> None:
     # Decide which UI to launch.
     if force_console:
         ui: ConsoleUI | TrayUI = ConsoleUI(controller)
+    elif force_tray:
+        # Force tray — fail if deps missing.
+        ui = TrayUI(controller)
     else:
         # Try tray UI on Windows, fall back to console.
         if sys.platform == "win32":

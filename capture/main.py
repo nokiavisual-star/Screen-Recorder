@@ -75,7 +75,12 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--console",
         action="store_true",
-        help="Use console UI instead of system tray.",
+        help="Use console (keyboard-driven) UI.",
+    )
+    parser.add_argument(
+        "--tray",
+        action="store_true",
+        help="Use system tray UI (requires pystray + Pillow).",
     )
     parser.add_argument(
         "--check",
@@ -203,13 +208,56 @@ def main(argv: list[str] | None = None) -> None:
         print()
 
     # ── Launch UI ───────────────────────────────────────────────────
+    # Determine which UI to launch.
+    # Default (no flags): tkinter GUI.
+    # --console: keyboard-driven console UI.
+    # --tray: system tray icon UI.
+    if args.tray:
+        from capture.ui import launch_ui
+        launch_ui(config, force_console=False, force_tray=True)
+    elif args.console:
+        from capture.ui import launch_ui
+        launch_ui(config, force_console=True, force_tray=False)
+    else:
+        # Default: try tkinter GUI, fall back to console on error.
+        try:
+            _launch_gui_mode(config)
+        except Exception:
+            # GUI failed — fall back to console UI.
+            from capture.ui import launch_ui
+            launch_ui(config, force_console=True, force_tray=False)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# UI launchers
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _launch_gui_mode(config: Config) -> None:
+    """Launch the tkinter GUI (default mode).
+
+    Prints a compact banner, then starts the GuiApp main loop.
+    Falls back to the original behaviour if tkinter is unavailable.
+
+    Args:
+        config: CapTure Config instance.
+    """
+    # Quick check for tkinter availability.
+    try:
+        import tkinter  # noqa: F401
+    except ImportError:
+        raise RuntimeError(
+            "Tkinter is not available in this Python installation. "
+            "Use --console or --tray instead."
+        )
+
     print(BANNER)
     print(f"  CapTure v{__version__}")
     print(f"  Output: {config.output_dir}")
     print()
 
-    from capture.ui import launch_ui
-    launch_ui(config, force_console=args.console)
+    from capture.gui import launch_gui
+    launch_gui(config)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
