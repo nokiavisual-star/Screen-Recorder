@@ -22,7 +22,7 @@ Notes:
 from pathlib import Path
 
 # ---- Project paths ----
-PROJECT_ROOT = Path(__file__).parent
+PROJECT_ROOT = Path(SPECPATH)
 CAPTURE_PKG = PROJECT_ROOT / "capture"
 
 # ---- Icon path (optional) ----
