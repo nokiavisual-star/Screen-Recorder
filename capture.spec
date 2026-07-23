@@ -37,12 +37,8 @@ a = Analysis(
     pathex=[str(PROJECT_ROOT)],
     binaries=[],
     datas=[
-        # Bundle icon.ico if present (included in the capture package so
-        # TrayUI can reference it at runtime).
-        (str(CAPTURE_PKG / "icon.ico"), "capture")
-        if ICON_PATH.exists()
-        else None,
-    ],
+        (str(CAPTURE_PKG / "icon.ico"), "capture"),
+    ] if ICON_PATH.exists() else [],
     hiddenimports=[
         # ── Critical runtime dependencies ────────────────────────
         "cv2",
