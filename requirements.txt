@@ -1,0 +1,17 @@
+# CapTure — Free screen recorder for Windows
+# No FFmpeg. Windows Media Foundation only.
+#
+# Runtime dependencies:
+dxcam>=0.0.3
+opencv-python-headless>=4.8.0,<5.0.0
+numpy>=1.24.0,<2.0.0
+pyaudio>=0.2.13
+comtypes>=1.2.0
+pystray>=0.19.0
+Pillow>=10.0.0
+
+# Dev / build dependencies:
+pyinstaller>=6.0.0
+
+# Optional (for extended COM support on Windows):
+# pywin32>=306
