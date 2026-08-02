@@ -15,8 +15,9 @@ Requirements:
 Notes:
     - UPX is disabled for opencv binaries (they can break under UPX).
     - dxcam is explicitly listed in hiddenimports (lazy-imported at runtime).
-    - The tray UI (pystray + Pillow) is included; console fallback is always
-      available via --console flag.
+    - The default tkinter GUI (including filedialog/messagebox) is bundled;
+      the tray UI (pystray + Pillow) is also included. Console mode remains
+      available via the --console flag.
 """
 
 from pathlib import Path
@@ -72,7 +73,12 @@ a = Analysis(
         "PIL._imagingtk",
         "PIL._tkinter_finder",
         "PIL._imaging",
-        # ── Standard-library modules PyInstaller may miss ────────
+        # ── Default tkinter GUI (lazy-imported by capture.main) ─────
+        "tkinter",
+        "tkinter.ttk",
+        "tkinter.filedialog",
+        "tkinter.messagebox",
+        # ── Standard-library modules PyInstaller may miss ───────────
         "queue",
         "wave",
         "struct",
@@ -92,8 +98,7 @@ a = Analysis(
     runtime_hooks=[],
     excludes=[
         # Exclude heavyweight/irrelevant modules to reduce .exe size.
-        "tkinter",
-        "tkinter.ttk",
+        # tkinter is intentionally bundled above: it powers the default GUI.
         "unittest",
         "test",
         "pydoc",

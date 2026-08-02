@@ -15,7 +15,11 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import ctypes
+from datetime import datetime
+import os
 import sys
+import traceback
 
 from capture import __version__
 from capture.config import Config
@@ -26,6 +30,53 @@ from capture.utils import (
     get_system_info,
     REQUIRED_MODULES,
 )
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Startup diagnostics
+# ═══════════════════════════════════════════════════════════════════════════
+
+_startup_error_reported = False
+
+
+def _error_log_path() -> str:
+    """Return the persistent startup error log path."""
+    if getattr(sys, "frozen", False):
+        base_dir = os.path.dirname(os.path.abspath(sys.executable))
+    else:
+        # Running from source: keep diagnostics beside the project entrypoint.
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_dir, "CapTure_error.log")
+
+
+def _report_startup_error(exc: BaseException) -> str:
+    """Log a full startup traceback and show a native Windows alert."""
+    global _startup_error_reported
+    if _startup_error_reported:
+        return _error_log_path()
+    _startup_error_reported = True
+    log_path = _error_log_path()
+    timestamp = datetime.now().astimezone().isoformat(timespec="seconds")
+    try:
+        with open(log_path, "a", encoding="utf-8") as log_file:
+            log_file.write(f"\n[{timestamp}] CapTure startup failure\n")
+            traceback.print_exception(type(exc), exc, exc.__traceback__, file=log_file)
+    except Exception:
+        # The native alert is still useful if the executable directory is read-only.
+        pass
+
+    message = (
+        "CapTure could not start its interface.\n\n"
+        f"Details were saved to:\n{log_path}"
+    )
+    try:
+        ctypes.windll.user32.MessageBoxW(
+            0, message, "CapTure startup error", 0x10  # MB_OK | MB_ICONERROR
+        )
+    except Exception:
+        # Non-Windows/source environments may not expose windll.
+        pass
+    return log_path
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Banner
@@ -219,13 +270,13 @@ def main(argv: list[str] | None = None) -> None:
         from capture.ui import launch_ui
         launch_ui(config, force_console=True, force_tray=False)
     else:
-        # Default: try tkinter GUI, fall back to console on error.
+        # Default: tkinter GUI is the primary interface. Never fall back to
+        # console mode here: windowed builds have no console to display it.
         try:
             _launch_gui_mode(config)
-        except Exception:
-            # GUI failed — fall back to console UI.
-            from capture.ui import launch_ui
-            launch_ui(config, force_console=True, force_tray=False)
+        except Exception as exc:
+            _report_startup_error(exc)
+            raise SystemExit(1) from exc
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -364,5 +415,16 @@ def _run_system_info() -> None:
 # Script entry point
 # ═══════════════════════════════════════════════════════════════════════════
 
+def _run_entrypoint() -> None:
+    """Run the decorated entry point while preserving diagnostics in GUI builds."""
+    try:
+        main()
+    except SystemExit:
+        raise
+    except BaseException as exc:
+        _report_startup_error(exc)
+        raise SystemExit(1) from exc
+
+
 if __name__ == "__main__":
-    main()
+    _run_entrypoint()
