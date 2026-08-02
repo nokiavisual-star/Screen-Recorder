@@ -49,12 +49,13 @@ def _error_log_path() -> str:
     return os.path.join(base_dir, "CapTure_error.log")
 
 
-def _report_startup_error(exc: BaseException) -> str:
-    """Log a full startup traceback and show a native Windows alert."""
-    global _startup_error_reported
-    if _startup_error_reported:
-        return _error_log_path()
-    _startup_error_reported = True
+def _write_startup_error_log(exc: BaseException) -> str:
+    """Append a timestamped traceback for *exc* to the persistent error log.
+
+    Returns:
+        The log file path (even if the write itself failed, so callers can
+        still surface the intended location).
+    """
     log_path = _error_log_path()
     timestamp = datetime.now().astimezone().isoformat(timespec="seconds")
     try:
@@ -64,6 +65,16 @@ def _report_startup_error(exc: BaseException) -> str:
     except Exception:
         # The native alert is still useful if the executable directory is read-only.
         pass
+    return log_path
+
+
+def _report_startup_error(exc: BaseException) -> str:
+    """Log a full startup traceback and show a native Windows alert."""
+    global _startup_error_reported
+    if _startup_error_reported:
+        return _error_log_path()
+    _startup_error_reported = True
+    log_path = _write_startup_error_log(exc)
 
     message = (
         "CapTure could not start its interface.\n\n"
@@ -236,8 +247,12 @@ def main(argv: list[str] | None = None) -> None:
             import capture.screen_capture  # noqa: F401
             import capture.audio_capture  # noqa: F401
             import capture.ui  # noqa: F401
-        except Exception:
+        except Exception as exc:
+            # GUI-subsystem builds have no visible stderr, so persist the
+            # traceback next to the exe for CI to surface. No MessageBox here:
+            # a modal dialog would hang a headless CI job until timeout.
             traceback.print_exc(file=sys.stderr)
+            _write_startup_error_log(exc)
             raise SystemExit(1)
         print("SMOKE OK")
         return
