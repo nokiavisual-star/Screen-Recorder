@@ -27,7 +27,12 @@ from ctypes import (
     c_uint32,
     c_void_p,
 )
-from ctypes.wintypes import BOOL, DWORD, HRESULT, LARGE_INTEGER, UINT32
+from ctypes.wintypes import BOOL, DWORD, LARGE_INTEGER, UINT32
+
+# HRESULT is typedef LONG (32-bit signed); used only as restype for COM/
+# Media Foundation functions; PyInstaller's bundled ctypes.wintypes omits it
+# in frozen builds.
+HRESULT = ctypes.c_long
 
 import numpy as np
 
