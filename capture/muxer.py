@@ -20,16 +20,21 @@ import sys
 from ctypes import (
     POINTER,
     byref,
+    c_int,
+    c_longlong,
     c_uint8,
     c_uint32,
+    c_ulong,
     c_void_p,
 )
-from ctypes.wintypes import BOOL, DWORD, LARGE_INTEGER, UINT32
 
-# HRESULT is typedef LONG (32-bit signed); used only as restype for COM/
-# Media Foundation functions; PyInstaller's bundled ctypes.wintypes omits it
-# in frozen builds.
+# PyInstaller's bundled ctypes.wintypes omits several names in frozen builds (HRESULT, UINT32, ...); self-define the few types used here to avoid depending on it.
 HRESULT = ctypes.c_long
+BOOL = c_int
+DWORD = c_ulong
+LARGE_INTEGER = c_longlong
+UINT32 = c_uint32
+
 
 from capture.config import Config
 from capture.errors import MuxerError
