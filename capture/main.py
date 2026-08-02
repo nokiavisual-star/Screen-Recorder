@@ -10,6 +10,7 @@ Usage:
     python -m capture.main --version    # Show version and exit
     python -m capture.main --check      # Check system readiness
     python -m capture.main --sysinfo    # Show detailed system info
+    python -m capture.main --smoke          # Validate the frozen import chain
 """
 
 from __future__ import annotations
@@ -115,6 +116,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
             "  capture --console        Force console UI\n"
             "  capture --check          Verify dependencies\n"
             "  capture --sysinfo        Show detailed system info\n"
+            "  capture --smoke          Validate the frozen import chain\n"
             "  capture --output ./vids  Save recordings to ./vids\n"
         ),
     )
@@ -122,6 +124,11 @@ def build_argument_parser() -> argparse.ArgumentParser:
         "--version",
         action="store_true",
         help="Show version and exit.",
+    )
+    parser.add_argument(
+        "--smoke",
+        action="store_true",
+        help="Import the complete startup chain and exit.",
     )
     parser.add_argument(
         "--console",
@@ -214,6 +221,25 @@ def main(argv: list[str] | None = None) -> None:
     # ── --sysinfo ───────────────────────────────────────────────────
     if args.sysinfo:
         _run_system_info()
+        return
+
+    # ── --smoke ─────────────────────────────────────────────────────
+    # Validate the frozen startup imports before any configuration or UI work.
+    if args.smoke:
+        try:
+            import tkinter  # noqa: F401
+            import capture.gui  # noqa: F401
+            import capture.controller  # noqa: F401
+            import capture.audio_encoder  # noqa: F401
+            import capture.muxer  # noqa: F401
+            import capture.video_encoder  # noqa: F401
+            import capture.screen_capture  # noqa: F401
+            import capture.audio_capture  # noqa: F401
+            import capture.ui  # noqa: F401
+        except Exception:
+            traceback.print_exc(file=sys.stderr)
+            raise SystemExit(1)
+        print("SMOKE OK")
         return
 
     # ── Build configuration ─────────────────────────────────────────
