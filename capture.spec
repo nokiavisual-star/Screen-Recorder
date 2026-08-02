@@ -79,6 +79,12 @@ a = Analysis(
         "tkinter.filedialog",
         "tkinter.messagebox",
         # ── Standard-library modules PyInstaller may miss ───────────
+        # NumPy's compiled random extensions import ``secrets`` without a
+        # Python-level import visible to PyInstaller's modulegraph. Once
+        # bundled, secrets' ordinary imports (random, base64, hashlib, hmac,
+        # and os) are discovered normally, so they are intentionally not
+        # duplicated here.
+        "secrets",
         "queue",
         "wave",
         "struct",
